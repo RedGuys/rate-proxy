@@ -25,6 +25,16 @@ if (options.map.length === 0) {
     options.map.push('/:/');
 }
 
+options.map = options.map.sort((a, b) => {
+    let aStr = a.split(":")[0];
+    let bStr = b.split(":")[0];
+    if(!aStr.endsWith('/')) aStr += '/';
+    if(!bStr.endsWith('/')) bStr += '/';
+    let aCount = aStr.split('/').length;
+    let bCount = bStr.split('/').length;
+    return bCount - aCount;
+});
+
 let app = express();
 
 options.map.forEach((mapping) => {
