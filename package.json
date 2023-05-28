@@ -1,0 +1,17 @@
+{
+  "name": "rate-proxy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bin": "./index.js",
+  "dependencies": {
+    "commander": "^10.0.1",
+    "express": "^4.18.2"
+  }
+}
