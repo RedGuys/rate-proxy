@@ -10,7 +10,7 @@ function collect(value, previous) {
 program
     .option('-v, --verbose', 'verbose output')
     .option('-c, --config <file>', 'TODO: config file to use')
-    .option('-t, --timeout <ms>', 'TODO: timeout in ms [500]', '0')
+    .option('-t, --timeout <ms>', 'timeout in ms [500]', '0')
     .option('-H, --host <host>', 'host to connect to [localhost]', 'localhost')
     .option('-p, --port <port>', 'port to listen [80]', '80')
     .option('-m, --map <map>', 'a key:value enpoints mapping', collect, [])
@@ -36,6 +36,34 @@ options.map = options.map.sort((a, b) => {
 });
 
 let app = express();
+const requestQueue = [];
+let isProcessing = false;
+
+if(options.timeout > 0) {
+    app.use((req, res, next) => {
+        requestQueue.push({req, res, next});
+
+        if (!isProcessing) {
+            processQueue();
+        }
+    });
+}
+
+function processQueue() {
+    if (requestQueue.length > 0) {
+        const { req, res, next } = requestQueue.shift();
+
+        next();
+
+        setTimeout(() => {
+            processQueue();
+        }, options.timeout);
+
+        isProcessing = true;
+    } else {
+        isProcessing = false;
+    }
+}
 
 options.map.forEach((mapping) => {
     let [from, to] = mapping.split(':');
