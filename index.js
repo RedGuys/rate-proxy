@@ -9,13 +9,15 @@ function collect(value, previous) {
 
 program
     .option('-v, --verbose', 'verbose output')
-    .option('-c, --config <file>', 'TODO: config file to use')
+    .option('-c, --config <file>', 'config file to use')
     .option('-t, --timeout <ms>', 'timeout in ms [500]', '0')
     .option('-H, --host <host>', 'host to connect to [localhost]', 'localhost')
     .option('-p, --port <port>', 'port to listen [80]', '80')
     .option('-m, --map <map>', 'a key:value enpoints mapping', collect, [])
 
 program.parse();
+
+const configuration = {routes: []};
 
 const options = program.opts();
 if (options.verbose)
@@ -25,9 +27,13 @@ if (options.map.length === 0) {
     options.map.push('/:/');
 }
 
-options.map = options.map.sort((a, b) => {
-    let aStr = a.split(":")[0];
-    let bStr = b.split(":")[0];
+for (let mapElement of options.map) {
+    configuration.routes.push({srcPath: mapElement.split(':')[0], destPath: mapElement.split(':')[1], destHost: options.host});
+}
+
+configuration.routes = configuration.routes.sort((a, b) => {
+    let aStr = a.srcPath;
+    let bStr = b.srcPath;
     if(!aStr.endsWith('/')) aStr += '/';
     if(!bStr.endsWith('/')) bStr += '/';
     let aCount = aStr.split('/').length;
@@ -65,9 +71,10 @@ function processQueue() {
     }
 }
 
-options.map.forEach((mapping) => {
-    let [from, to] = mapping.split(':');
-    let host = options.host;
+configuration.routes.forEach((route) => {
+    const from = route.srcPath;
+    const to = route.destPath;
+    const host = route.destHost;
 
     const router = express.Router();
     router.all('*', (req, res) => {
