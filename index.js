@@ -16,7 +16,7 @@ program
     .option('-p, --port <port>', 'port to listen [80]', '80')
     .option('-m, --map <map>', 'a key:value enpoints mapping', collect, [])
 
-program.parse();
+program.parse(process.argv);
 
 const configuration = {routes: []};
 
