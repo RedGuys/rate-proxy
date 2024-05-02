@@ -33,6 +33,7 @@ The server supports several command line options:
 - `-H, --host <host>`: Set the host to connect to (default is localhost).
 - `-p, --port <port>`: Set the port to listen on (default is 80).
 - `-m, --map <map>`: Define a key:value endpoints mapping.
+- `-q, --maxqueue <num>`: Set the maximum number of requests in the queue (default is -1).
 
 You can also define routes and their mappings in a configuration file. The configuration file is a JSON file with the following structure:
 

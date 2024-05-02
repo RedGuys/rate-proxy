@@ -15,6 +15,7 @@ program
     .option('-H, --host <host>', 'host to connect to [localhost]', 'localhost')
     .option('-p, --port <port>', 'port to listen [80]', '80')
     .option('-m, --map <map>', 'a key:value enpoints mapping', collect, [])
+    .option("-q, --maxqueue <num>", "maximum number of requests in queue [-1]", '-1');
 
 program.parse(process.argv);
 
@@ -46,6 +47,8 @@ if (options.config) {
     }
 }
 
+options.maxqueue = parseInt(options.maxqueue);
+
 configuration.routes = configuration.routes.sort((a, b) => {
     let aStr = a.srcPath;
     let bStr = b.srcPath;
@@ -62,6 +65,10 @@ let isProcessing = false;
 
 if (options.timeout > 0) {
     app.use((req, res, next) => {
+        if(options.maxqueue > 0 && requestQueue.length >= options.maxqueue) {
+            res.status(429).send('Too Many Requests');
+            return;
+        }
         requestQueue.push({req, res, next});
 
         if (!isProcessing) {
