@@ -15,7 +15,8 @@ program
     .option('-H, --host <host>', 'host to connect to [localhost]', 'localhost')
     .option('-p, --port <port>', 'port to listen [80]', '80')
     .option('-m, --map <map>', 'a key:value enpoints mapping', collect, [])
-    .option("-q, --maxqueue <num>", "maximum number of requests in queue [-1]", '-1');
+    .option("-q, --maxqueue <num>", "maximum number of requests in queue [-1]", '-1')
+    .option("-c, --cors <cors>", "sets cors domain header", null);
 
 program.parse(process.argv);
 
@@ -26,8 +27,14 @@ if (options.verbose)
     console.log(options);
 
 if (options.config) {
-    if(!fs.existsSync(options.config)) {
-        fs.writeFileSync(options.config, JSON.stringify({routes: [{srcPath:"/",destPath:"/", destHost:"localhost"}]}, null, 4));
+    if (!fs.existsSync(options.config)) {
+        fs.writeFileSync(options.config, JSON.stringify({
+            routes: [{
+                srcPath: "/",
+                destPath: "/",
+                destHost: "localhost"
+            }]
+        }, null, 4));
     }
     const config = JSON.parse(fs.readFileSync(options.config, 'utf8'));
     if (config.routes) {
@@ -65,7 +72,7 @@ let isProcessing = false;
 
 if (options.timeout > 0) {
     app.use((req, res, next) => {
-        if(options.maxqueue > 0 && requestQueue.length >= options.maxqueue) {
+        if (options.maxqueue > 0 && requestQueue.length >= options.maxqueue) {
             res.status(429).send('Too Many Requests');
             return;
         }
@@ -103,9 +110,19 @@ configuration.routes.forEach((route) => {
         let url = new URL(req.url, host);
         url.pathname = url.pathname.replace(from, to);
         if (options.verbose)
-            console.log(`Proxying ${(from + req.url).replaceAll("//", "/")} to ${url.href}`);
+            console.log(`Proxying ${req.method} ${(from + req.url).replaceAll("//", "/")} to ${url.href}`);
         if (url.protocol === 'http:') {
-            http.get(url.href, (proxyRes) => {
+            req.headers['host'] = url.host;
+            http.request({
+                host: url.host,
+                port: url.port,
+                path: url.pathname,
+                method: req.method,
+                headers: req.headers
+            }, (proxyRes) => {
+                if (options.cors) {
+                    proxyRes.headers['Access-Control-Allow-Origin'] = options.cors;
+                }
                 res.writeHead(proxyRes.statusCode, proxyRes.headers);
                 proxyRes.pipe(res);
             }).on('error', (err) => {
@@ -114,7 +131,17 @@ configuration.routes.forEach((route) => {
                 res.end('Internal Server Error');
             });
         } else if (url.protocol === 'https:') {
-            https.get(url.href, (proxyRes) => {
+            req.headers['host'] = url.host;
+            https.request({
+                host: url.host,
+                port: url.port,
+                path: url.pathname,
+                method: req.method,
+                headers: req.headers
+            }, (proxyRes) => {
+                if (options.cors) {
+                    proxyRes.headers['Access-Control-Allow-Origin'] = options.cors;
+                }
                 res.writeHead(proxyRes.statusCode, proxyRes.headers);
                 proxyRes.pipe(res);
             }).on('error', (err) => {

@@ -1,6 +1,6 @@
 {
   "name": "rate-proxy",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "rate-proxy is a simple, configurable proxy server built with Node.js. It allows you to define routes and map them to different endpoints. It also supports rate limiting with a configurable timeout.",
   "main": "index.js",
   "scripts": {
