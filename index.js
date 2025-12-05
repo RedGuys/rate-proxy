@@ -106,17 +106,17 @@ configuration.routes.forEach((route) => {
     const host = route.destHost;
 
     const router = express.Router();
-    router.all('*', (req, res) => {
+    router.use((req, res) => {
         let url = new URL(req.url, host);
         url.pathname = url.pathname.replace(from, to);
         if (options.verbose)
             console.log(`Proxying ${req.method} ${(from + req.url).replaceAll("//", "/")} to ${url.href}`);
         if (url.protocol === 'http:') {
             req.headers['host'] = url.host;
-            http.request({
-                host: url.host,
-                port: url.port,
-                path: url.pathname,
+            const proxyReq = http.request({
+                hostname: url.hostname,
+                port: url.port || 80,
+                path: url.pathname + url.search,
                 method: req.method,
                 headers: req.headers
             }, (proxyRes) => {
@@ -125,17 +125,19 @@ configuration.routes.forEach((route) => {
                 }
                 res.writeHead(proxyRes.statusCode, proxyRes.headers);
                 proxyRes.pipe(res);
-            }).on('error', (err) => {
+            });
+            proxyReq.on('error', (err) => {
                 console.error(`Error while proxying request: ${err.message}`);
                 res.statusCode = 500;
                 res.end('Internal Server Error');
             });
+            req.pipe(proxyReq);
         } else if (url.protocol === 'https:') {
             req.headers['host'] = url.host;
-            https.request({
-                host: url.host,
-                port: url.port,
-                path: url.pathname,
+            const proxyReq = https.request({
+                hostname: url.hostname,
+                port: url.port || 443,
+                path: url.pathname + url.search,
                 method: req.method,
                 headers: req.headers
             }, (proxyRes) => {
@@ -144,11 +146,13 @@ configuration.routes.forEach((route) => {
                 }
                 res.writeHead(proxyRes.statusCode, proxyRes.headers);
                 proxyRes.pipe(res);
-            }).on('error', (err) => {
+            });
+            proxyReq.on('error', (err) => {
                 console.error(`Error while proxying request: ${err.message}`);
                 res.statusCode = 500;
                 res.end('Internal Server Error');
             });
+            req.pipe(proxyReq);
         } else {
             console.error(`Unsupported protocol: ${url.protocol}`);
             res.statusCode = 500;
